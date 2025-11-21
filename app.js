@@ -1,86 +1,110 @@
-let who = "me"; // default
-let selected = null;
+// ===============================
+//  SHIFT ROTATION GENERATOR
+// ===============================
 
-function setWho(value) {
-    who = value;
-    renderCalendar(currentMonth, currentYear);
-}
+document.getElementById("generateBtn").addEventListener("click", () => {
+    const who = document.getElementById("whoStarts").value;
+    const dateValue = document.getElementById("startDate").value;
+    const error = document.getElementById("error");
+    error.textContent = "";
 
-document.getElementById("whoStarts").addEventListener("change", (e) => {
-    setWho(e.target.value);
+    if (!dateValue) {
+        error.textContent = "Please choose a start date.";
+        return;
+    }
+
+    const date = new Date(dateValue);
+    const day = date.getDay(); // Monday = 1, Wednesday = 3
+
+    // VALIDATION
+    if (who === "me" && day !== 1) {
+        error.textContent = "❌ You must select a MONDAY.";
+        return;
+    }
+
+    if (who === "coworker" && day !== 3) {
+        error.textContent = "❌ Coworker must start on WEDNESDAY.";
+        return;
+    }
+
+    // Generate ALL allowed possibilities
+    generateRotations(date, who);
 });
 
-// Calendar engine ------------------------------------
-const calendarGrid = document.getElementById("calendarGrid");
-const calTitle = document.getElementById("calTitle");
 
-let today = new Date();
-let currentMonth = today.getMonth();
-let currentYear = today.getFullYear();
+// ===================================================
+// ROTATION GENERATOR WITH RULES (1–6 weeks only)
+// ===================================================
+function generateRotations(startDate, who) {
+    const results = document.getElementById("results");
+    results.innerHTML = "";
 
-document.getElementById("prevMonth").onclick = () => {
-    currentMonth--;
-    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-    renderCalendar(currentMonth, currentYear);
-};
+    for (let w = 1; w <= 6; w++) {
 
-document.getElementById("nextMonth").onclick = () => {
-    currentMonth++;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-    renderCalendar(currentMonth, currentYear);
-};
+        // RULE: cannot work beyond 6 weeks (already enforced)
+        // RULE: rest cannot exceed worked weeks (rest <= w)
 
-function renderCalendar(month, year) {
+        const leaveDate = addDays(startDate, w * 7);
 
-    calendarGrid.innerHTML = "";
-    calTitle.innerText = `${year} – ${monthName(month)}`;
-
-    let first = new Date(year, month, 1).getDay();
-    if (first === 0) first = 7;
-
-    let daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // Fill blanks
-    for (let i = 1; i < first; i++) {
-        let cell = document.createElement("div");
-        cell.className = "calendar-day disabled-day";
-        calendarGrid.appendChild(cell);
-    }
-
-    // Fill days
-    for (let d = 1; d <= daysInMonth; d++) {
-        let cell = document.createElement("div");
-        cell.className = "calendar-day";
-        cell.innerText = d;
-
-        let date = new Date(year, month, d);
-        let day = date.getDay(); // 1 = Monday, 3 = Wed
-
-        let allowedDay = (who === "me" && day === 1) || (who === "coworker" && day === 3);
-
-        if (allowedDay) {
-            cell.classList.add("allowed-day");
-            cell.onclick = () => selectDate(date, cell);
+        // NEXT person arrival (Mon -> +7 days, Wed -> +7 days)
+        let nextPersonDate;
+        if (who === "me") {
+            // coworker arrives Wednesday → 2 days after Monday cycle ends
+            nextPersonDate = addDays(leaveDate, 2);
         } else {
-            cell.classList.add("disabled-day");
+            // you arrive Monday → 5 days after Wednesday cycle ends
+            nextPersonDate = addDays(leaveDate, 5);
         }
 
-        calendarGrid.appendChild(cell);
+        // REST OPTIONS for the next person
+        const restMin = 1;
+        const restMax = w;   // cannot rest more than worked
+        const restList = [];
+        for (let r = restMin; r <= restMax; r++) {
+            restList.push(`${r} week${r > 1 ? "s" : ""}`);
+        }
+
+        // Create card UI
+        const card = document.createElement("div");
+        card.className = "card rotation-card";
+
+        card.innerHTML = `
+            <h3>Rotation Option ${w}</h3>
+            <p><strong>Weeks worked:</strong> ${w}</p>
+
+            <p><strong>Start:</strong> ${formatDate(startDate)}</p>
+            <p><strong>Leave:</strong> ${formatDate(leaveDate)}</p>
+
+            <p><strong>Next arrives:</strong> ${
+                who === "me" 
+                ? `Coworker (Wednesday) → ${formatDate(nextPersonDate)}`
+                : `You (Monday) → ${formatDate(nextPersonDate)}`
+            }</p>
+
+            <p><strong>Allowed rest options:</strong><br>
+                ${restList.join(", ")}
+            </p>
+
+            <p><strong>Started by:</strong> ${
+                who === "me" ? "You (Monday)" : "Coworker (Wednesday)"
+            }</p>
+        `;
+
+        results.appendChild(card);
     }
 }
 
-function selectDate(date, cell) {
-    if (selected) selected.classList.remove("selected-day");
 
-    selected = cell;
-    cell.classList.add("selected-day");
 
-    document.getElementById("selectedDate").innerHTML =
-        `Selected: <b>${date.toISOString().split("T")[0]}</b>`;
+// ===================================================
+// SMALL UTILITIES
+// ===================================================
+function addDays(d, days) {
+    const newDate = new Date(d);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
 }
 
-function monthName(n) {
-    return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][n];
+function formatDate(d) {
+    return d.toISOString().split("T")[0];
 }
-
-renderCalendar(currentMonth, currentYear);
