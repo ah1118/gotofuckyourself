@@ -2,10 +2,25 @@
 //  SHIFT ROTATION GENERATOR
 // ===============================
 
+// RULES:
+// 1) Work = 1–6 weeks
+// 2) Rest cannot exceed work weeks
+// 3) Next work starts on correct weekday (Mon or Wed)
+// 4) Show Start → Leave → Next Work Start → Next Arriver
+
+
 document.getElementById("generateBtn").addEventListener("click", () => {
     const who = document.getElementById("whoStarts").value;
     const dateValue = document.getElementById("startDate").value;
-    const error = document.getElementById("error");
+    let error = document.getElementById("error");
+
+    if (!error) {
+        error = document.createElement("p");
+        error.id = "error";
+        error.style.color = "red";
+        document.querySelector(".sidebar").appendChild(error);
+    }
+
     error.textContent = "";
 
     if (!dateValue) {
@@ -13,96 +28,95 @@ document.getElementById("generateBtn").addEventListener("click", () => {
         return;
     }
 
-    const date = new Date(dateValue);
-    const day = date.getDay(); // Monday = 1, Wednesday = 3
+    const start = new Date(dateValue);
+    const weekday = start.getDay(); // Monday=1, Wednesday=3
 
     // VALIDATION
-    if (who === "me" && day !== 1) {
+    if (who === "me" && weekday !== 1) {
         error.textContent = "❌ You must select a MONDAY.";
         return;
     }
 
-    if (who === "coworker" && day !== 3) {
-        error.textContent = "❌ Coworker must start on WEDNESDAY.";
+    if (who === "coworker" && weekday !== 3) {
+        error.textContent = "❌ Coworker must select a WEDNESDAY.";
         return;
     }
 
-    // Generate ALL allowed possibilities
-    generateRotations(date, who);
+    generateRotations(start, who);
 });
 
 
-// ===================================================
-// ROTATION GENERATOR WITH RULES (1–6 weeks only)
-// ===================================================
+// ===============================
+// GENERATE 1–6 WEEK ROTATIONS
+// ===============================
 function generateRotations(startDate, who) {
     const results = document.getElementById("results");
     results.innerHTML = "";
 
-    for (let w = 1; w <= 6; w++) {
+    for (let workWeeks = 1; workWeeks <= 6; workWeeks++) {
 
-        // RULE: cannot work beyond 6 weeks (already enforced)
-        // RULE: rest cannot exceed worked weeks (rest <= w)
+        // LEAVE DATE
+        const leaveDate = addDays(startDate, workWeeks * 7);
 
-        const leaveDate = addDays(startDate, w * 7);
+        // REST CANNOT exceed work weeks
+        for (let restWeeks = 1; restWeeks <= workWeeks; restWeeks++) {
 
-        // NEXT person arrival (Mon -> +7 days, Wed -> +7 days)
-        let nextPersonDate;
-        if (who === "me") {
-            // coworker arrives Wednesday → 2 days after Monday cycle ends
-            nextPersonDate = addDays(leaveDate, 2);
-        } else {
-            // you arrive Monday → 5 days after Wednesday cycle ends
-            nextPersonDate = addDays(leaveDate, 5);
+            // NEXT WORK START after rest
+            let nextWorkDate = addDays(leaveDate, restWeeks * 7);
+
+            // Fix weekday (Mon/Wed)
+            nextWorkDate = fixToCorrectWeekday(
+                nextWorkDate,
+                who // same person goes back to work
+            );
+
+            const nextPerson = (who === "me") ? "Coworker (Wed)" : "You (Mon)";
+
+            const card = document.createElement("div");
+            card.className = "card rotation-card";
+
+            card.innerHTML = `
+                <h3>${who === "me" ? "You" : "Coworker"} Rotation</h3>
+
+                <p><strong>Work:</strong> ${workWeeks} week(s)</p>
+                <p><strong>Rest:</strong> ${restWeeks} week(s)</p>
+
+                <p><strong>Start:</strong> ${formatDate(startDate)}</p>
+                <p><strong>Leave:</strong> ${formatDate(leaveDate)}</p>
+
+                <p><strong>Next Work Start:</strong> ${formatDate(nextWorkDate)}</p>
+
+                <p><strong>Next Person Arrives:</strong> ${nextPerson}</p>
+            `;
+
+            results.appendChild(card);
         }
-
-        // REST OPTIONS for the next person
-        const restMin = 1;
-        const restMax = w;   // cannot rest more than worked
-        const restList = [];
-        for (let r = restMin; r <= restMax; r++) {
-            restList.push(`${r} week${r > 1 ? "s" : ""}`);
-        }
-
-        // Create card UI
-        const card = document.createElement("div");
-        card.className = "card rotation-card";
-
-        card.innerHTML = `
-            <h3>Rotation Option ${w}</h3>
-            <p><strong>Weeks worked:</strong> ${w}</p>
-
-            <p><strong>Start:</strong> ${formatDate(startDate)}</p>
-            <p><strong>Leave:</strong> ${formatDate(leaveDate)}</p>
-
-            <p><strong>Next arrives:</strong> ${
-                who === "me" 
-                ? `Coworker (Wednesday) → ${formatDate(nextPersonDate)}`
-                : `You (Monday) → ${formatDate(nextPersonDate)}`
-            }</p>
-
-            <p><strong>Allowed rest options:</strong><br>
-                ${restList.join(", ")}
-            </p>
-
-            <p><strong>Started by:</strong> ${
-                who === "me" ? "You (Monday)" : "Coworker (Wednesday)"
-            }</p>
-        `;
-
-        results.appendChild(card);
     }
 }
 
 
+// ===============================
+// FIX WEEKDAY (MON OR WED)
+// ===============================
+function fixToCorrectWeekday(date, who) {
+    const targetDay = (who === "me") ? 1 : 3;
+    let d = new Date(date);
 
-// ===================================================
-// SMALL UTILITIES
-// ===================================================
-function addDays(d, days) {
-    const newDate = new Date(d);
-    newDate.setDate(newDate.getDate() + days);
-    return newDate;
+    while (d.getDay() !== targetDay) {
+        d = addDays(d, 1);
+    }
+
+    return d;
+}
+
+
+// ===============================
+// UTILITIES
+// ===============================
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
 }
 
 function formatDate(d) {
