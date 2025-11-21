@@ -3,74 +3,59 @@
 // ===============================
 
 // RULES:
-// 1) Work = 1–6 weeks
-// 2) Rest cannot exceed work weeks
-// 3) Next work starts on correct weekday (Mon or Wed)
-// 4) Show Start → Leave → Next Work Start → Next Arriver
-
+// 1) Work period = 1–6 weeks
+// 2) Rest period CANNOT be > worked weeks
+// 3) Next work start must follow correct weekday (Mon for you, Wed for coworker)
+// 4) Show: leave date + next work start + next person arrival
 
 document.getElementById("generateBtn").addEventListener("click", () => {
     const who = document.getElementById("whoStarts").value;
     const dateValue = document.getElementById("startDate").value;
-    let error = document.getElementById("error");
+    const error = document.getElementById("error");
 
-    if (!error) {
-        error = document.createElement("p");
-        error.id = "error";
-        error.style.color = "red";
-        document.querySelector(".sidebar").appendChild(error);
-    }
-
-    error.textContent = "";
+    if (error) error.textContent = "";
 
     if (!dateValue) {
-        error.textContent = "Please choose a start date.";
+        if (error) error.textContent = "Please choose a start date.";
         return;
     }
 
-    const start = new Date(dateValue);
-    const weekday = start.getDay(); // Monday=1, Wednesday=3
+    const date = new Date(dateValue);
+    const day = date.getDay(); // Monday=1, Wednesday=3
 
-    // VALIDATION
-    if (who === "me" && weekday !== 1) {
-        error.textContent = "❌ You must select a MONDAY.";
+    if (who === "me" && day !== 1) {
+        if (error) error.textContent = "❌ You must select a MONDAY.";
         return;
     }
 
-    if (who === "coworker" && weekday !== 3) {
-        error.textContent = "❌ Coworker must select a WEDNESDAY.";
+    if (who === "coworker" && day !== 3) {
+        if (error) error.textContent = "❌ Coworker must start on WEDNESDAY.";
         return;
     }
 
-    generateRotations(start, who);
+    generateRotations(date, who);
 });
 
 
-// ===============================
-// GENERATE 1–6 WEEK ROTATIONS
-// ===============================
+// ===================================================
+// GENERATE ALL ROTATION POSSIBILITIES
+// ===================================================
 function generateRotations(startDate, who) {
     const results = document.getElementById("results");
     results.innerHTML = "";
 
     for (let workWeeks = 1; workWeeks <= 6; workWeeks++) {
 
-        // LEAVE DATE
+        // Leave date = start + workWeeks
         const leaveDate = addDays(startDate, workWeeks * 7);
 
-        // REST CANNOT exceed work weeks
+        // Allowed rest = 1 → workWeeks
         for (let restWeeks = 1; restWeeks <= workWeeks; restWeeks++) {
 
-            // NEXT WORK START after rest
-            let nextWorkDate = addDays(leaveDate, restWeeks * 7);
+            const nextWorkRaw = addDays(leaveDate, restWeeks * 7);
 
-            // Fix weekday (Mon/Wed)
-            nextWorkDate = fixToCorrectWeekday(
-                nextWorkDate,
-                who // same person goes back to work
-            );
-
-            const nextPerson = (who === "me") ? "Coworker (Wed)" : "You (Mon)";
+            // Adjust to correct weekday
+            const nextWorkStart = fixToCorrectWeekday(nextWorkRaw, who);
 
             const card = document.createElement("div");
             card.className = "card rotation-card";
@@ -84,9 +69,11 @@ function generateRotations(startDate, who) {
                 <p><strong>Start:</strong> ${formatDate(startDate)}</p>
                 <p><strong>Leave:</strong> ${formatDate(leaveDate)}</p>
 
-                <p><strong>Next Work Start:</strong> ${formatDate(nextWorkDate)}</p>
+                <p><strong>Next Work Start:</strong> ${formatDate(nextWorkStart)}</p>
 
-                <p><strong>Next Person Arrives:</strong> ${nextPerson}</p>
+                <p><strong>Next Person Arrives:</strong>
+                    ${who === "me" ? "Coworker (Wed)" : "You (Mon)"}
+                </p>
             `;
 
             results.appendChild(card);
@@ -95,30 +82,28 @@ function generateRotations(startDate, who) {
 }
 
 
-// ===============================
-// FIX WEEKDAY (MON OR WED)
-// ===============================
-function fixToCorrectWeekday(date, who) {
-    const targetDay = (who === "me") ? 1 : 3;
-    let d = new Date(date);
+// ===================================================
+// UTILITIES
+// ===================================================
 
+// Add days
+function addDays(d, days) {
+    const newDate = new Date(d);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
+}
+
+// Always convert date to Mon or Wed
+function fixToCorrectWeekday(date, who) {
+    const targetDay = (who === "me") ? 1 : 3; // 1=Mon, 3=Wed
+    let d = new Date(date);
     while (d.getDay() !== targetDay) {
         d = addDays(d, 1);
     }
-
     return d;
 }
 
-
-// ===============================
-// UTILITIES
-// ===============================
-function addDays(date, days) {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
-}
-
+// Format YYYY-MM-DD
 function formatDate(d) {
     return d.toISOString().split("T")[0];
 }
