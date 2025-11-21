@@ -1,3 +1,7 @@
+// ===============================
+//  SHIFT ROTATION GENERATOR
+// ===============================
+
 document.getElementById("generateBtn").addEventListener("click", () => {
     const who = document.getElementById("whoStarts").value;
     const dateValue = document.getElementById("startDate").value;
@@ -10,9 +14,9 @@ document.getElementById("generateBtn").addEventListener("click", () => {
     }
 
     const date = new Date(dateValue);
-    const day = date.getDay(); // Monday = 1, Wednesday = 3
+    const day = date.getDay(); // Monday=1, Wednesday=3
 
-    // VALIDATION
+    // VALIDATION RULES
     if (who === "me" && day !== 1) {
         error.textContent = "❌ You must select a MONDAY.";
         return;
@@ -28,57 +32,54 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 });
 
 
-// =======================================================================================
-//     GENERATE ROTATIONS (1–6 WEEKS) + LEAVE DATE + NEXT ARRIVAL DATE
-// =======================================================================================
+// ===================================================
+// GENERATE ROTATION OPTIONS (1–6 WEEKS)
+// ===================================================
 function generateRotations(startDate, who) {
     const results = document.getElementById("results");
     results.innerHTML = "";
 
     for (let w = 1; w <= 6; w++) {
-        let myStart = new Date(startDate);
-
-        // Leave date = start + weeks * 7 days
-        let leaveDate = new Date(myStart);
-        leaveDate.setDate(leaveDate.getDate() + w * 7);
-
-        // Coworker arrival = always next Wednesday after leave
-        let coworkerArrives = nextWednesday(leaveDate);
+        const leaveDate = addDays(startDate, w * 7);          // After X weeks
+        const nextPersonDate = addDays(leaveDate, 2);         // Wednesday after leaving (Mon→Tue→Wed)
 
         const card = document.createElement("div");
-        card.className = "card";
+        card.className = "card rotation-card";
 
         card.innerHTML = `
             <h3>Rotation Option ${w}</h3>
+            <p><strong>Weeks:</strong> ${w}</p>
 
-            <p><b>Weeks:</b> ${w}</p>
-            <p><b>Start:</b> ${formatDate(myStart)}</p>
-            <p><b>Leave:</b> ${formatDate(leaveDate)}</p>
-            <p><b>Coworker Arrives:</b> ${formatDate(coworkerArrives)}</p>
+            <p><strong>Start:</strong> ${formatDate(startDate)}</p>
+            <p><strong>Leave:</strong> ${formatDate(leaveDate)}</p>
 
-            <p><b>Started by:</b> 
-               ${who === "me" ? "You (Mon)" : "Coworker (Wed)"}
-            </p>
+            <p><strong>Next arrives:</strong> ${
+                who === "me" 
+                ? `Coworker (Wed) → ${formatDate(nextPersonDate)}`
+                : `You (Mon) → ${formatDate(nextPersonDate)}`
+            }</p>
+
+            <p><strong>Started by:</strong> ${
+                who === "me" ? "You (Monday)" : "Coworker (Wednesday)"
+            }</p>
         `;
         results.appendChild(card);
     }
 }
 
 
-// =======================================================================================
-//     HELPERS
-// =======================================================================================
+// ===================================================
+// SMALL UTILITIES
+// ===================================================
+
+// Add days to a JS date
+function addDays(d, days) {
+    const newDate = new Date(d);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
+}
 
 // Format YYYY-MM-DD
 function formatDate(d) {
     return d.toISOString().split("T")[0];
-}
-
-// Find next Wednesday after any date
-function nextWednesday(d) {
-    let next = new Date(d);
-    while (next.getDay() !== 3) {
-        next.setDate(next.getDate() + 1);
-    }
-    return next;
 }
