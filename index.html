@@ -4,44 +4,38 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shift Rotation Planner</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+<div class="layout">
 
-<div id="app">
-  <div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <h2 class="side-title">Shift Options</h2>
 
-    <!-- =============== SIDEBAR =============== -->
-    <aside class="sidebar">
-      <h2 class="side-title">Shift Options</h2>
+    <label>Who Starts Next?</label>
+    <select id="whoStarts">
+      <option value="me">Me (Monday)</option>
+      <option value="coworker">Coworker (Wednesday)</option>
+    </select>
 
-      <div class="card">
-        <label>Who Starts Next?</label>
-        <select id="whoStarts">
-          <option value="me">Me (Monday)</option>
-          <option value="coworker">Coworker (Wednesday)</option>
-        </select>
-      </div>
+    <label>Start Date</label>
+    <input type="date" id="startDate">
 
-      <div class="card">
-        <label>Start Date</label>
-        <input type="date" id="startDate" />
-      </div>
+    <button id="generateBtn" class="btn-primary">Generate Rotations</button>
 
-      <div class="card">
-        <button id="generateBtn" class="btn-primary">Generate Rotations</button>
-      </div>
-    </aside>
+    <p id="error" class="error-msg"></p>
+  </aside>
 
-    <!-- =============== MAIN AREA =============== -->
-    <main class="main">
-      <h1 class="title">All Possible Rotations</h1>
-      <p class="subtitle">1–6 week periods · Monday/Wed · Always covered</p>
+  <!-- MAIN -->
+  <main class="main">
+    <h1>All Possible Rotations</h1>
+    <p class="subtitle">1–6 week periods · Validation Included</p>
 
-      <div id="results" class="results-grid"></div>
-    </main>
+    <div id="results" class="results-grid"></div>
+  </main>
 
-  </div>
 </div>
 
 <script src="app.js"></script>
